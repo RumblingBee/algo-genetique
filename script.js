@@ -3,14 +3,37 @@ var population;
 //Durée de vie d'une roquette
 var lifespan = 200;
 
+//Variable qui indique quel vecteur du tableau d'ADN lire
+var count = 0;
+
+var target;
+
+
+/**
+ * VARIABLES D AFFICHAGE
+ */
+
+var lifeParagraph;
+
+
 function setup() {
     createCanvas(800, 600);
     population = new Population();
+    target = createVector(width/2,50);
+    
 }
 
 function draw() {
     background(0);
     population.run();
+    count++;
+
+    ellipse(target.x,target.y,32,32);
+
+    if(count === lifespan){
+        population = new Population();
+        count = 0;
+    }
 
 }
 /**
@@ -22,6 +45,8 @@ function DNA() {
     this.genes = [];
     for (var i = 0; i < lifespan; i++) {
         this.genes[i] = p5.Vector.random2D();
+        //Force appliquée
+        this.genes[i].setMag(0.4);
     }
 
 }
@@ -50,16 +75,13 @@ function Rocket() {
 
     this.dna = new DNA();
 
-    //Variable qui indique quel vecteur du tableau d'ADN lire
-    this.count = 0;
-
     this.applyForce = function (force) {
         this.acceleration.add(force);
     }
 
     this.update = function () {
-        this.applyForce(this.dna.genes[this.count]);
-        this.count++;
+        this.applyForce(this.dna.genes[count]);
+    
 
         this.velocity.add(this.acceleration);
         this.position.add(this.velocity);
