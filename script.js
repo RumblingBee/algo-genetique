@@ -8,11 +8,17 @@ var count = 0;
 
 var target;
 
+var generation = 1;
+var randomMutation = 0;
+
 /**
  * VARIABLES D AFFICHAGE
  */
 
-var lifeParagraph;
+var lifeP;
+var generationP;
+var mutationP;
+
 
 
 function setup() {
@@ -20,19 +26,38 @@ function setup() {
     population = new Population();
     target = createVector(width / 2, 50);
 
+    var libelleLifeP = createP("Temps avant mort");
+    libelleLifeP.position(900,325);
+    lifeP = createP();
+    lifeP.position(900,350);
+
+    var libelleGenerationP = createP("Génération");
+    libelleGenerationP.position(900,425);
+    generationP = createP();
+    generationP.position(900,450);
+
+    var libelleMutationP = createP("Nombre de mutation aléatoire");
+    libelleMutationP.position(900,500);
+    mutationP = createP();
+    mutationP.position(900,525);
+
 }
 
 function draw() {
     background(0);
     population.run();
     count++;
+    lifeP.html(200 - count);
+    generationP.html(generation);
+    mutationP.html(randomMutation);
+    
 
     ellipse(target.x, target.y, 32, 32);
 
     if (count === lifespan) {
        population.evaluate();
        population.selection();
-
+        generation++;
         count = 0;
     }
 
@@ -65,6 +90,15 @@ function DNA(genes) {
                 newgenes[i] = partner.genes[i];
 
             }
+
+            //Mutation aléatoire
+           var rand =  Math.floor((Math.random() * 20000));
+       
+           if(rand === 19999){
+            var positionOfMutation = Math.floor((Math.random() * (this.genes.length -1)));
+            newgenes[positionOfMutation] = p5.Vector.random2D();
+           randomMutation++;
+           }
         }
         return new DNA(newgenes);
     }
