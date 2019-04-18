@@ -11,6 +11,7 @@ var target;
 var generation = 1;
 var randomMutation = 0;
 var maxFit = 0;
+var globalFit = 0;
 
 /**
  * VARIABLES D AFFICHAGE
@@ -20,6 +21,7 @@ var lifeP;
 var generationP;
 var mutationP;
 var maxFitP;
+var globalFitP;
 
 
 
@@ -47,6 +49,11 @@ function setup() {
     libelleMutationP.position(900,575);
     maxFitP = createP();
     maxFitP.position(900,600);
+
+    var libelleGlobalFitP = createP("Fitness totale");
+    libelleGlobalFitP.position(900,650);
+    globalFitP = createP();
+    globalFitP.position(900,675);
 }
 
 function draw() {
@@ -57,6 +64,7 @@ function draw() {
     generationP.html(generation);
     mutationP.html(randomMutation);
     maxFitP.html(maxFit);
+    globalFitP.html(globalFit);
     
 
     ellipse(target.x, target.y, 32, 32);
@@ -127,12 +135,14 @@ function Population() {
     // Evalue quelles Roquettes vont être parents de la prochaine génération
     this.evaluate = function () {
          maxFit = 0;
+         globalFit = 0;
 
         for (var i = 0; i < this.populationSize; i++) {
             this.rockets[i].calculateFitness();
             if (this.rockets[i].fitness > maxFit) {
                 maxFit = this.rockets[i].fitness;
             }
+            globalFit += this.rockets[i].fitness;
         }
         //On  normalise les valeurs pour les rendres plus lisibles
         for (var i = 0; i < this.populationSize; i++) {
