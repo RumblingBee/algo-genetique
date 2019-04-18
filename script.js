@@ -1,7 +1,7 @@
 var population;
 
 //Durée de vie d'une roquette
-var lifespan = 200;
+var lifespan = 100;
 
 //Variable qui indique quel vecteur du tableau d'ADN lire
 var count = 0;
@@ -10,6 +10,7 @@ var target;
 
 var generation = 1;
 var randomMutation = 0;
+var maxFit = 0;
 
 /**
  * VARIABLES D AFFICHAGE
@@ -18,6 +19,7 @@ var randomMutation = 0;
 var lifeP;
 var generationP;
 var mutationP;
+var maxFitP;
 
 
 
@@ -40,16 +42,21 @@ function setup() {
     libelleMutationP.position(900,500);
     mutationP = createP();
     mutationP.position(900,525);
-
+    
+    var libelleMutationP = createP("Fitness max");
+    libelleMutationP.position(900,575);
+    maxFitP = createP();
+    maxFitP.position(900,600);
 }
 
 function draw() {
     background(0);
     population.run();
     count++;
-    lifeP.html(200 - count);
+    lifeP.html(lifespan - count);
     generationP.html(generation);
     mutationP.html(randomMutation);
+    maxFitP.html(maxFit);
     
 
     ellipse(target.x, target.y, 32, 32);
@@ -64,7 +71,8 @@ function draw() {
 }
 /**
  * L'ADN est un tableau de vecteur qui sera lu
- * par la fusée.
+ * par la fusée, si elle n'a pas d'ADN, on le crée
+ * en renseignant des vecteurs aléatoires.
  */
 function DNA(genes) {
     if (genes) {
@@ -75,7 +83,7 @@ function DNA(genes) {
         for (var i = 0; i < lifespan; i++) {
             this.genes[i] = p5.Vector.random2D();
             //Force appliquée
-            this.genes[i].setMag(0.4);
+            this.genes[i].setMag(0.8);
         }
     }
 
@@ -92,9 +100,9 @@ function DNA(genes) {
             }
 
             //Mutation aléatoire
-           var rand =  Math.floor((Math.random() * 20000));
+           var rand =  Math.floor((Math.random() * 5000));
        
-           if(rand === 19999){
+           if(rand === 4999){
             var positionOfMutation = Math.floor((Math.random() * (this.genes.length -1)));
             newgenes[positionOfMutation] = p5.Vector.random2D();
            randomMutation++;
@@ -118,7 +126,7 @@ function Population() {
 
     // Evalue quelles Roquettes vont être parents de la prochaine génération
     this.evaluate = function () {
-        var maxFit = 0;
+         maxFit = 0;
 
         for (var i = 0; i < this.populationSize; i++) {
             this.rockets[i].calculateFitness();
