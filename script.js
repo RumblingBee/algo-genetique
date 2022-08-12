@@ -22,8 +22,16 @@ var generationP;
 var mutationP;
 var maxFitP;
 var globalFitP;
+var percentP;
+var averageDistanceFromTargetAtDeath;
+var minDistanceFromTarget = 1000000;
+var maxProximity;
 
 
+function printResult() {
+    alert("Le plus proche a atteint une distance de \n\n" + minDistanceFromTarget);
+    alert(population.rockets[0].dna.genes.toString());
+}
 
 function setup() {
     createCanvas(800, 600);
@@ -31,29 +39,38 @@ function setup() {
     target = createVector(width / 2, 50);
 
     var libelleLifeP = createP("Temps avant mort");
-    libelleLifeP.position(900,325);
+    libelleLifeP.position(900,225);
     lifeP = createP();
-    lifeP.position(900,350);
+    lifeP.position(900,250);
 
     var libelleGenerationP = createP("Génération");
-    libelleGenerationP.position(900,425);
+    libelleGenerationP.position(900,325);
     generationP = createP();
-    generationP.position(900,450);
+    generationP.position(900,350);
 
     var libelleMutationP = createP("Nombre de mutation aléatoire");
-    libelleMutationP.position(900,500);
+    libelleMutationP.position(900,400);
     mutationP = createP();
-    mutationP.position(900,525);
-    
-    var libelleMutationP = createP("Fitness max");
-    libelleMutationP.position(900,575);
-    maxFitP = createP();
-    maxFitP.position(900,600);
+    mutationP.position(900,425);
 
-    var libelleGlobalFitP = createP("Fitness totale");
+    var libelleDistanceMin = createP("Distance minimale de l'objectif");
+    libelleDistanceMin.position(900,475);
+    maxFitP = createP();
+    maxFitP.position(900,500);
+
+    var pourcentageReussite = createP("Proximité maximale de l'objectif");
+    pourcentageReussite.position(900,575);
+    percentP = createP();
+    percentP.position(900,600);
+
+    var libelleGlobalFitP = createP("Distance moyenne de l'objectif");
     libelleGlobalFitP.position(900,650);
     globalFitP = createP();
     globalFitP.position(900,675);
+
+    button = createButton('Stop');
+    button.position(950, 750);
+    button.mousePressed(printResult);
 }
 
 function draw() {
@@ -63,9 +80,10 @@ function draw() {
     lifeP.html(lifespan - count);
     generationP.html(generation);
     mutationP.html(randomMutation);
-    maxFitP.html(maxFit);
-    globalFitP.html(globalFit);
-    
+    maxFitP.html(minDistanceFromTarget);
+    globalFitP.html(averageDistanceFromTargetAtDeath);
+    percentP.html(maxProximity*100 + " % ");
+
 
     ellipse(target.x, target.y, 32, 32);
 
@@ -109,7 +127,7 @@ function DNA(genes) {
 
             //Mutation aléatoire
            var rand =  Math.floor((Math.random() * 5000));
-       
+
            if(rand === 4999){
             var positionOfMutation = Math.floor((Math.random() * (this.genes.length -1)));
             newgenes[positionOfMutation] = p5.Vector.random2D();
@@ -137,13 +155,22 @@ function Population() {
          maxFit = 0;
          globalFit = 0;
 
-        for (var i = 0; i < this.populationSize; i++) {
+         let sumDistanceFromTargetAtDeath = 0;
+
+         for (var i = 0; i < this.populationSize; i++) {
             this.rockets[i].calculateFitness();
+            const distance = getDistanceFromTarget.call(this.rockets[i]);
+             sumDistanceFromTargetAtDeath += distance;
             if (this.rockets[i].fitness > maxFit) {
                 maxFit = this.rockets[i].fitness;
+                minDistanceFromTarget =  distance;
             }
             globalFit += this.rockets[i].fitness;
         }
+
+         averageDistanceFromTargetAtDeath = sumDistanceFromTargetAtDeath / this.rockets.length;
+         maxProximity =  (dist(0,0, target.x, target.y) - minDistanceFromTarget) / dist(0,0, target.x, target.y);
+
         //On  normalise les valeurs pour les rendres plus lisibles
         for (var i = 0; i < this.populationSize; i++) {
             this.rockets[i].fitness /= maxFit;
@@ -178,12 +205,17 @@ function Population() {
     }
 }
 
+function getDistanceFromTarget() {
+    return dist(this.position.x, this.position.y, target.x, target.y);
+}
+
 function Rocket(dna) {
     this.position = createVector(width / 2, height);
     //Vecteur aléatoire
     this.velocity = createVector();
     this.acceleration = createVector();
     this.fitness = 0;
+    this.color = color(random(255),random(255),random(255));
     if (dna) {
         this.dna = dna;
     } else {
@@ -196,7 +228,7 @@ function Rocket(dna) {
     }
 
     this.calculateFitness = function () {
-        var distanceFromTarget = dist(this.position.x, this.position.y, target.x, target.y);
+        var distanceFromTarget = getDistanceFromTarget.call(this);
         this.fitness = map(distanceFromTarget,0,width,width,0);
     }
 
@@ -222,6 +254,7 @@ function Rocket(dna) {
         translate(this.position.x, this.position.y);
         rotate(this.velocity.heading());
         rectMode(CENTER);
+        fill(this.color);
         rect(0, 0, 50, 10);
         pop();
     }
