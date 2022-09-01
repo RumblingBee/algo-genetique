@@ -1,7 +1,7 @@
 var population;
 
 //Durée de vie d'une roquette
-var lifespan = 100;
+var lifespan = 50;
 
 //Variable qui indique quel vecteur du tableau d'ADN lire
 var count = 0;
@@ -26,6 +26,8 @@ var percentP;
 var averageDistanceFromTargetAtDeath;
 var minDistanceFromTarget = 1000000;
 var maxProximity;
+var elit;
+var lastGenMinDistance = 10000000;
 
 
 function printResult() {
@@ -39,34 +41,34 @@ function setup() {
     target = createVector(width / 2, 50);
 
     var libelleLifeP = createP("Temps avant mort");
-    libelleLifeP.position(900,225);
+    libelleLifeP.position(900, 225);
     lifeP = createP();
-    lifeP.position(900,250);
+    lifeP.position(900, 250);
 
     var libelleGenerationP = createP("Génération");
-    libelleGenerationP.position(900,325);
+    libelleGenerationP.position(900, 325);
     generationP = createP();
-    generationP.position(900,350);
+    generationP.position(900, 350);
 
     var libelleMutationP = createP("Nombre de mutation aléatoire");
-    libelleMutationP.position(900,400);
+    libelleMutationP.position(900, 400);
     mutationP = createP();
-    mutationP.position(900,425);
+    mutationP.position(900, 425);
 
     var libelleDistanceMin = createP("Distance minimale de l'objectif");
-    libelleDistanceMin.position(900,475);
+    libelleDistanceMin.position(900, 475);
     maxFitP = createP();
-    maxFitP.position(900,500);
+    maxFitP.position(900, 500);
 
     var pourcentageReussite = createP("Proximité maximale de l'objectif");
-    pourcentageReussite.position(900,575);
+    pourcentageReussite.position(900, 575);
     percentP = createP();
-    percentP.position(900,600);
+    percentP.position(900, 600);
 
     var libelleGlobalFitP = createP("Distance moyenne de l'objectif");
-    libelleGlobalFitP.position(900,650);
+    libelleGlobalFitP.position(900, 650);
     globalFitP = createP();
-    globalFitP.position(900,675);
+    globalFitP.position(900, 675);
 
     button = createButton('Stop');
     button.position(950, 750);
@@ -82,19 +84,21 @@ function draw() {
     mutationP.html(randomMutation);
     maxFitP.html(minDistanceFromTarget);
     globalFitP.html(averageDistanceFromTargetAtDeath);
-    percentP.html(maxProximity*100 + " % ");
+    percentP.html(maxProximity * 100 + " % ");
 
 
     ellipse(target.x, target.y, 32, 32);
 
     if (count === lifespan) {
-       population.evaluate();
-       population.selection();
+        lastGenMinDistance = minDistanceFromTarget;
+        population.evaluate();
+        population.selection();
         generation++;
         count = 0;
     }
 
 }
+
 /**
  * L'ADN est un tableau de vecteur qui sera lu
  * par la fusée, si elle n'a pas d'ADN, on le crée
@@ -124,15 +128,6 @@ function DNA(genes) {
                 newgenes[i] = partner.genes[i];
 
             }
-
-            //Mutation aléatoire
-           var rand =  Math.floor((Math.random() * 5000));
-
-           if(rand === 4999){
-            var positionOfMutation = Math.floor((Math.random() * (this.genes.length -1)));
-            newgenes[positionOfMutation] = p5.Vector.random2D();
-           randomMutation++;
-           }
         }
         return new DNA(newgenes);
     }
@@ -141,7 +136,7 @@ function DNA(genes) {
 
 function Population() {
     this.rockets = [];
-    this.populationSize = 25;
+    this.populationSize = 200;
 
     // Liste des parents potentiels
     this.matingPool = [];
@@ -152,24 +147,25 @@ function Population() {
 
     // Evalue quelles Roquettes vont être parents de la prochaine génération
     this.evaluate = function () {
-         maxFit = 0;
-         globalFit = 0;
+        maxFit = 0;
+        globalFit = 0;
 
-         let sumDistanceFromTargetAtDeath = 0;
+        let sumDistanceFromTargetAtDeath = 0;
 
-         for (var i = 0; i < this.populationSize; i++) {
+        for (var i = 0; i < this.populationSize; i++) {
             this.rockets[i].calculateFitness();
             const distance = getDistanceFromTarget.call(this.rockets[i]);
-             sumDistanceFromTargetAtDeath += distance;
+            sumDistanceFromTargetAtDeath += distance;
             if (this.rockets[i].fitness > maxFit) {
                 maxFit = this.rockets[i].fitness;
-                minDistanceFromTarget =  distance;
+                minDistanceFromTarget = distance;
+                elit = Object.assign({}, this.rockets[i]);
             }
             globalFit += this.rockets[i].fitness;
         }
 
-         averageDistanceFromTargetAtDeath = sumDistanceFromTargetAtDeath / this.rockets.length;
-         maxProximity =  (dist(0,0, target.x, target.y) - minDistanceFromTarget) / dist(0,0, target.x, target.y);
+        averageDistanceFromTargetAtDeath = sumDistanceFromTargetAtDeath / this.rockets.length;
+        maxProximity = (dist(0, 0, target.x, target.y) - minDistanceFromTarget) / dist(0, 0, target.x, target.y);
 
         //On  normalise les valeurs pour les rendres plus lisibles
         for (var i = 0; i < this.populationSize; i++) {
@@ -188,13 +184,37 @@ function Population() {
             var newRockets = [];
             for (var i = 0; i < this.rockets.length; i++) {
 
-                var parentA = random(this.matingPool).dna;
-                var parentB = random(this.matingPool).dna;
-                var child = parentA.crossover(parentB);
+                var parentA = random(this.matingPool);
+                var parentB = random(this.matingPool);
+                var child = parentA.dna.crossover(parentB.dna);
+
+                //Mutation aléatoire
+                var rand = Math.floor((Math.random() * 5000));
+                let mutated = false;
+                if (rand >= 4500) {
+                    var positionOfMutation = Math.floor((Math.random() * (child.genes.length - 1)));
+                    child.genes[positionOfMutation] = p5.Vector.random2D();
+                    randomMutation++;
+                    mutated = true;
+                }
+
                 newRockets[i] = new Rocket(child);
+
+                if (mutated) {
+                    newRockets[i].color = color("green");
+                }
             }
+
             this.rockets = newRockets;
+
+            this.rockets[0].color = (elit.color);
+            if (lastGenMinDistance > getDistanceFromTarget.call(elit)) {
+                this.rockets[0].color = $.xcolor.random().getHex();
+            }
+            this.rockets[0].dna = (elit.dna);
+            this.rockets[0].isElit = true;
         }
+
 
     }
     this.run = function () {
@@ -215,7 +235,8 @@ function Rocket(dna) {
     this.velocity = createVector();
     this.acceleration = createVector();
     this.fitness = 0;
-    this.color = color(random(255),random(255),random(255));
+    this.color = color("white");
+    this.isElit = false;
     if (dna) {
         this.dna = dna;
     } else {
@@ -229,7 +250,7 @@ function Rocket(dna) {
 
     this.calculateFitness = function () {
         var distanceFromTarget = getDistanceFromTarget.call(this);
-        this.fitness = map(distanceFromTarget,0,width,width,0);
+        this.fitness = map(distanceFromTarget, 0, width, width, 0);
     }
 
     this.update = function () {
@@ -255,7 +276,14 @@ function Rocket(dna) {
         rotate(this.velocity.heading());
         rectMode(CENTER);
         fill(this.color);
-        rect(0, 0, 50, 10);
+
+        if (this.isElit) {
+            circle(0, 0, 40);
+
+        } else {
+            rect(0, 0, 50, 10);
+
+        }
         pop();
     }
 }
